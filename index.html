@@ -1,14 +1,22 @@
-
 <!DOCTYPE html>
-<html><head>
+<html><!--
+   This web page does the minimal setup for using mouse events along
+   with 2D canvas graphics.
+--><head>
 <meta charset="UTF-8">
-<title>CPSC 424, Lab 2, Exercise 1</title>
+<title>CS424, Lab 2, Exercise 2</title>
 <style>
     /* This style section is here to make the canvas more obvious on the
        page.  It is white on a light gray page background, with a thin
-       black border. */
+       black border.  Also, turn off text selection to avoid having
+       selection interfere with mouse action. */
     body {
         background-color: #DDDDDD;
+        -webkit-user-select: none; /* turn off text selection  / Webkit */
+        -moz-user-select: none;    /* Firefox */
+        -ms-user-select: none;     /* IE 10  */
+        -o-user-select: none;      /* Opera */
+        user-select: none;
     }
     canvas {
         background-color: white;
@@ -25,126 +33,145 @@
 
     var canvas;    // The canvas element on which we will draw.
     var graphics;  // A 2D graphics context for drawing on the canvas.
-    var pixelSize; // The size of a pixel in the coordinate system; set up by
-                   //    applyWindowToViewportTransform function when it is called.
     
     /**
-     *  The draw() function is called by init() after the page loads,
-     *  to draw the content of the canvas.  At the start, clear the canvas
-     *  and save a copy of the state; restore the state at the end.  (These
-     *  actions are not necessary in this program, since the function will
-     *  only be called once.)
+     * This function returns a string representing a random RGB color.
+     * The returned string can be assigned as the value of graphics.fillStyle
+     * or graphics.strokeStyle.
      */
-    function draw() {
-    
-        graphics.clearRect(0,0,600,600);
+    function randomColorString() {
+        var r = Math.floor(256*Math.random());
+        var g = Math.floor(256*Math.random());
+        var b = Math.floor(256*Math.random());
+        return "rgb(" + r + "," + g + "," + b + ")";
+    }
         
-        // TODO: insert code to draw the image for Exercise 1!
-        //graphics.fillRect(100,100,200,100);
-        //graphics.strokeRect(100,100,300,200);
-        //graphics.fillText("hello",50,50);
-        //graphics.fillOval()
-       
+    function clearall()
+    {
+        graphics.clearRect(0,0,800,600);
+    }
+    /**
+     * This function is called in init() to set up mouse event handling
+     * on the canvas.  You can modify the nested functions doMouseDown,
+     * doMouseDrag, and possibly doMouseUp to change the reponse to
+     * mouse events.  As an example, this program does some simple drawing.
+     */
+    function installMouseHandler() {
 
-		
-	// trapez
-		graphics.lineWidth = 5;
-		//graphics.fillStyle= "green";
-		graphics.fillStyle = "rgb(100,255,50)";
-		graphics.fillPoly(170,280,390,280,500,500, 80,500);
-		graphics.strokePoly(170,280,390,280,500,500, 80,500);
-	   
-	 // usta 
-	 
-		graphics.fillStyle = "black";
-        graphics.fillOval(285,380,65,90);
-		graphics.fillStyle= "rgb(100,255,50)";
-		graphics.fillOval(285,380,80,60);
-		graphics.fillStyle= "rgb(100,255,50)";
-		graphics.fillOval(285,350,80,60);
-		
-		graphics.fillStyle= "black";
-		graphics.fillOval(231,428,8,10);
-		
-		graphics.fillStyle= "black";
-		graphics.fillOval(336,426,8,10);
-		
-		graphics.fillStyle= "rgb(100,255,50)";
-		graphics.fillRect(333,381,50,50)
-		
-		graphics.fillStyle= "rgb(100,255,50)";
-		graphics.fillRect(185,383,50,50)
-		
-		// zęby
-		graphics.fillStyle = "white";
+        var dragging = false;  // set to true when a drag action is in progress.
+        var startX, startY;    // coordinates of mouse at start of drag.
+        var prevX, prevY;      // previous mouse position during a drag.
         
-        graphics.fillPoly(270,441,282,443,281,455,270,455);
-        graphics.fillPoly(283,442,294,443,293,456,282,456);
-		
-	 // oczy
-	 
-		graphics.fillStyle = "white";
-        graphics.fillCircle(220,331,25);
-		graphics.fillCircle(350,332,25);
-		
-		graphics.fillStyle = "black";
-        graphics.fillCircle(220,331,15);
-		graphics.fillCircle(350,332,15);
-		
-		graphics.fillStyle = "white";
-        graphics.fillCircle(216,328,5);
-		graphics.fillCircle(347,329,5);
-     
-
+        var colorChoice;  // Integer code for the selected color in the "colorChoide"
+        var PolyChoice;  // popup menu.  The value is assigned in doMouseDown.
         
-        
-    } // end of draw()
-    
-    /**
-     * Moje Funkcje
-     */
-    
-    
-    
-    /**
-     * Sets up a transformation in the graphics context so that the canvas will
-     * show x-values in the range from left to right, and y-values in the range
-     * from bottom to top.  If preserveAspect is true, then one of the ranges
-     * will be increased, if necessary, to account for the aspect ratio of the
-     * canvas.  This function sets the global variable pixelsize to be the
-     * size of a pixel in the new coordinate system.  (If preseverAspect is
-     * true, pixelSize is the maximum of its horizontal and vertical sizes.)
-     */
-    function applyWindowToViewportTransformation(left,right,bottom,top,preserveAspect) {
-        var displayAspect, windowAspect;
-        var excess;
-        var pixelwidth, pixelheight;
-        if (preserveAspect) {
-            // Adjust the limits to match the aspect ratio of the drawing area.
-            displayAspect = Math.abs(canvas.height / canvas.width);
-            windowAspect = Math.abs(( top-bottom ) / ( right-left ));
-            if (displayAspect > windowAspect) {
-                // Expand the viewport vertically.
-                excess = (top-bottom) * (displayAspect/windowAspect - 1);
-                top = top + excess/2;
-                bottom = bottom - excess/2;
+        function doMouseDown(evt) {
+                // This function is called when the user presses a button on the mouse.
+                // Only the main mouse button will start a drag.
+            if (dragging) {
+                return;  // if a drag is in progress, don't start another.
             }
-            else if (displayAspect < windowAspect) {
-                // Expand the viewport vertically.
-                excess = (right-left) * (windowAspect/displayAspect - 1);
-                right = right + excess/2;
-                left = left - excess/2;
+            if (evt.button != 0) {
+                return;  // don't respond unless the button is the main (left) mouse button.
             }
+            var x,y;  // mouse position in canvas coordinates
+            var r = canvas.getBoundingClientRect();
+            x = Math.round(evt.clientX - r.left);  // translate mouse position from screen coords to canvas coords.
+            y = Math.round(evt.clientY - r.top);   // round to integer values; some browsers would give non-integers.
+            dragging = true;  // (this won't be the case for all mousedowns in all programs)
+            if (dragging) {
+                startX = prevX = x;
+                startY = prevY = y;
+                document.addEventListener("mousemove", doMouseMove, false);
+                document.addEventListener("mouseup", doMouseUp, false);
+            }
+            colorChoice = Number(document.getElementById("colorChoice").value);
+            // TODO: Anything else to do when mouse is first pressed?
+            PolyChoice = Number(document.getElementById("PolyChoice").value);
         }
-        graphics.scale( canvas.width / (right-left), canvas.height / (bottom-top) );
-        graphics.translate( -left, -top );
-        pixelwidth =  Math.abs(( right - left ) / canvas.width);
-        pixelheight = Math.abs(( bottom - top ) / canvas.height);
-        pixelSize = Math.max(pixelwidth,pixelheight);
-    }  // end of applyWindowToViewportTransformation()
+		
+		var numberOfSides = 11;
+        var radius=35;
+        var xx = 10;
+        var yy = 10;
+         var angle = 2*Math.PI/numberOfSides;
+        
+        function doMouseMove(evt) {
+                // This function is called when the user moves the mouse during a drag.
+            if (!dragging) {
+                return;  // (shouldn't be possible)
+            }
+            var x,y;  // mouse position in canvas coordinates
+            var r = canvas.getBoundingClientRect();
+            x = Math.round(evt.clientX - r.left);  
+            y = Math.round(evt.clientY - r.top);
+            
+            /*------------------------------------------------------------*/
+            /* TODO: Add support for more drawing tools. */
+            
+            if ( Math.abs(x-prevX) + Math.abs(y-prevY) < 3 ) {
+                return;  // don't draw squares too close together
+            }
+                
+            if (colorChoice == 0) {
+                graphics.fillStyle = randomColorString();
+            }
+            else if (colorChoice == 1) {
+                graphics.fillStyle = "red";
+            }
+            else if (colorChoice == 2) {
+                graphics.fillStyle = "green";
+            }
+            else if (colorChoice == 3) {
+                graphics.fillStyle = "blue";
+            }
+            else if (colorChoice == 4) {
+                graphics.fillStyle = "yellow";
+            }
+            
+            if (PolyChoice == 0) {
+                graphics.fillRect(x-20,y-20,40,40);
+                graphics.strokeRect(x-20,y-20,40,40);
+            }
+           
+            
+			else if (PolyChoice==1)
+            {
+         
+              graphics.beginPath();
+            graphics.moveTo (x-xx +  radius*Math.cos(0), y-yy +  radius*Math.sin(0));          
+            for (var i = 1; i <= numberOfSides; i++) 
+            {
+             graphics.lineTo (x-xx + radius*Math.cos(i * angle), y-yy + radius*Math.sin(i * angle));
+             
+             graphics.fill()
+             graphics.stroke();
+            }
+            }
+
+			
+            /*------------------------------------------------------------*/
+            
+            prevX = x;  // update prevX,prevY to prepare for next call to doMouseMove
+            prevY = y;
+        }
+        
+        function doMouseUp(evt) {
+                // This function is called when the user releases a mouse button during a drag.
+            if (!dragging) {
+                return;  // (shouldn't be possible)
+            }
+            dragging = false;
+            document.removeEventListener("mousemove", doMouseMove, false);
+            document.removeEventListener("mouseup", doMouseMove, false);
+         }
+         
+         canvas.addEventListener("mousedown", doMouseDown, false);
+
+   } // end installMouseHandler
 
 
-    /**
+   /**
      * This function can be called to add a collection of extra drawing function to
      * a graphics context, to make it easier to draw basic shapes with that context.
      * The parameter, graphics, must be a canvas 2d graphics context.
@@ -227,12 +254,12 @@
         }
     }    // end of addGraphicsContextExtras()
     
+       
     /**
-     * The init() funciton is called after the page has been
-     * loaded.  It initializes the canvas and graphics variables.
-     * It calles addGraphicsContextExtras(graphics) to add the extra
-     * drawing functions to the graphics context, and it calls draw()
-     * to draw on the canvas.
+     * The init() function is called after the page has been
+     * loaded.  It initializes the canvas and graphics variables,
+     * and it installs mouse and key listeners.  If an error
+     * occurs, a message is displayed in place of the canvas.
      */
     function init() {
         try {
@@ -240,33 +267,49 @@
             graphics = canvas.getContext("2d");
         } catch(e) {
             document.getElementById("canvasholder").innerHTML =
-               "Canvas graphics is not supported.<br>" +
-               "An error occurred while initializing graphics.";
+               "<p>Canvas graphics is not supported.<br>" +
+               "An error occurred while initializing graphics.</p>";
+               return;
         }
         addGraphicsContextExtras(graphics);
-        draw();  // Call draw() to draw on the canvas.
+        installMouseHandler();
+        graphics.fillStyle = "white";
+        graphics.fillRect(0,0,canvas.width,canvas.height);
     }
     
 </script>
 </head>
 <body onload="init()"> <!-- the onload attribute here is what calls the init() function -->
 
-<h2>CS 424, Lab 2, Exercise 1</h2>
+<h2>Lab 2, Exercise 2: Mousing</h2>
 
 <noscript>
     <!-- This message will be shown in the page if JavaScript is not available. -->
 <p>JavaScript is required to use this page.</p>
 </noscript>
 
+<p><b>Color:</b>
+    <select id="colorChoice">
+        <option value="0">Random</option>
+        <option value="1">Red</option>
+        <option value="2">Green</option>
+        <option value="3">Blue</option>
+        <option value="4">yellow</option>
+    </select>
+    <b>Style:</b>
+    <select id="PolyChoice">
+        <option value="0">kwadrat</option>
+        <option value="1">11-kat</option>
+    </select>
+    <button onclick="clearall()">clear</button>
+</p>
+
 <div id="canvasholder">
-<canvas id="canvas" width="600" height="600">
+<canvas id="canvas" width="800" height="600">
     <!-- This message is shown on the page if the browser doesn't support the canvas element. -->
 Canvas not supported.
 </canvas>
 </div>
 
 
-
 </body></html>
-
-
